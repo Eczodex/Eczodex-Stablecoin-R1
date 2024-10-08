@@ -68,22 +68,28 @@ contract EczodexUSD is
     }
 
     function blacklist(address account) public onlyRole(BLACKLISTER_ROLE) {
-        isBlacklisted[account] = true;
-        emit Blacklisted(account);
+        if (!isBlacklisted[account]) {
+            isBlacklisted[account] = true;
+            emit Blacklisted(account);
+        }
     }
 
     function removeFromBlacklist(
         address account
     ) public onlyRole(BLACKLISTER_ROLE) {
-        isBlacklisted[account] = false;
-        emit Unblacklisted(account);
+        if (isBlacklisted[account]) {
+            isBlacklisted[account] = false;
+            emit Unblacklisted(account);
+        }
     }
 
     function setDebtCeiling(
-        uint256 _debtCeiling
+        uint256 newDebtCeiling
     ) public onlyRole(DEBT_CEILING_ADJUSTER_ROLE) {
-        debtCeiling = _debtCeiling;
-        emit DebtCeilingAdjusted(msg.sender, debtCeiling);
+        if (debtCeiling != newDebtCeiling) {
+            debtCeiling = newDebtCeiling;
+            emit DebtCeilingAdjusted(msg.sender, debtCeiling);
+        }
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {
@@ -119,9 +125,9 @@ contract EczodexUSD is
     ) internal override whenNotPaused {
         if (isBlacklisted[from] || isBlacklisted[to]) {
             emit BlacklistedTransferAttempt(from, to, amount);
+            revert("Either sender or receiver is blacklisted");
         }
-        require(!isBlacklisted[from], "Account is blacklisted");
-        require(!isBlacklisted[to], "Account is blacklisted");
+
         super._beforeTokenTransfer(from, to, amount);
     }
 
